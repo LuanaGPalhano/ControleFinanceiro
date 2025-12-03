@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'transacao_model.dart';
 
 class TransacaoFormPage extends StatelessWidget {
   const TransacaoFormPage({super.key});

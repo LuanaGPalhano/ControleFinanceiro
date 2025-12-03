@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
-import 'core/theme/theme_controller.dart'; // Importe o controller
+import 'core/theme/theme_controller.dart'; 
 
 import 'modules/home/home_page.dart';
 import 'modules/transacoes/transacoes_page.dart';
