@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/database/db_helper.dart';
-import 'package:intl/intl.dart'; // Para formatar R$ e Data
-import 'transacao_model.dart';
+import 'package:flutter_application_1/modules/transacoes/transacao_model.dart';
+import 'package:intl/intl.dart';
+import 'transacao_form_page.dart'; // Importe a página de formulário
 
 class TransacoesPage extends StatefulWidget {
   const TransacoesPage({super.key});
@@ -11,7 +12,6 @@ class TransacoesPage extends StatefulWidget {
 }
 
 class _TransacoesPageState extends State<TransacoesPage> {
-  // Variável que guarda o futuro (a promessa da lista)
   late Future<List<Transacao>> _transacoesFuture;
 
   @override
@@ -26,36 +26,45 @@ class _TransacoesPageState extends State<TransacoesPage> {
     });
   }
 
-  // Função para deletar item do banco
   Future<void> _deletarTransacao(int id) async {
     await DBHelper().deleteTransacao(id);
-    _atualizarLista(); // Recarrega a tela
+    _atualizarLista();
+  }
+
+  // --- FUNÇÃO NOVA: NAVEGAR PARA EDITAR ---
+  void _editarTransacao(Transacao transacao) async {
+    // Abre o formulário passando a transação clicada
+    final bool? salvou = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TransacaoFormPage(transacaoParaEditar: transacao),
+      ),
+    );
+
+    // Se voltou com "true" (salvou), atualiza a lista
+    if (salvou == true) {
+      _atualizarLista();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(title: const Text("Histórico")),
       
-      // FutureBuilder constrói a tela baseado no estado do Banco de Dados
       body: FutureBuilder<List<Transacao>>(
         future: _transacoesFuture,
         builder: (context, snapshot) {
-          
-          // 1. Carregando
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // 2. Lista Vazia ou Erro
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.history, size: 60, color: Colors.grey.withValues(alpha: 0.3)),
+                  Icon(Icons.history, size: 60, color: Colors.grey.withOpacity(0.3)),
                   const SizedBox(height: 16),
                   const Text("Nenhuma transação ainda."),
                 ],
@@ -63,7 +72,6 @@ class _TransacoesPageState extends State<TransacoesPage> {
             );
           }
 
-          // 3. Lista com Dados
           final transacoes = snapshot.data!;
           
           return ListView.separated(
@@ -74,7 +82,6 @@ class _TransacoesPageState extends State<TransacoesPage> {
               final item = transacoes[index];
               final isReceita = item.tipo == 1;
 
-              // Widget nativo para arrastar e excluir
               return Dismissible(
                 key: Key(item.id.toString()),
                 direction: DismissDirection.endToStart,
@@ -87,18 +94,25 @@ class _TransacoesPageState extends State<TransacoesPage> {
                   ),
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
-                onDismissed: (direction) {
+                onDismissed: (_) {
                   if (item.id != null) _deletarTransacao(item.id!);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Transação removida")),
                   );
                 },
                 child: Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: ListTile(
+                    // --- AQUI ESTÁ O SEGREDO DO CLIQUE ---
+                    onTap: () => _editarTransacao(item), 
+                    // -------------------------------------
+                    
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: CircleAvatar(
                       backgroundColor: isReceita 
-                          ? Colors.green.withValues(alpha: 0.1) 
-                          : Colors.red.withValues(alpha: 0.1),
+                          ? Colors.green.withOpacity(0.1) 
+                          : Colors.red.withOpacity(0.1),
                       child: Icon(
                         isReceita ? Icons.arrow_upward : Icons.arrow_downward,
                         color: isReceita ? Colors.green : Colors.red,
@@ -127,14 +141,13 @@ class _TransacoesPageState extends State<TransacoesPage> {
         },
       ),
       
-      // Botão flutuante para adicionar rápido
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Espera voltar da tela de formulário
-          final bool? salvou = await Navigator.pushNamed(context, '/transacao_form') as bool?;
-          if (salvou == true) {
-            _atualizarLista(); // Se salvou algo, atualiza a lista
-          }
+          final bool? salvou = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const TransacaoFormPage()),
+          );
+          if (salvou == true) _atualizarLista();
         },
         child: const Icon(Icons.add),
       ),

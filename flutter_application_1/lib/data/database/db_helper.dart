@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter_application_1/modules/transacoes/transacao_model.dart';
-import 'package:flutter_application_1/core/services/log_service.dart'; // Import do Logger
+import 'package:flutter_application_1/core/services/log_service.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -18,7 +18,6 @@ class DBHelper {
 
   Future<Database> _initDB() async {
     LogService.info("🔄 Iniciando conexão com o SQLite...");
-    
     String path = join(await getDatabasesPath(), 'finance.db');
     
     return await openDatabase(
@@ -39,30 +38,29 @@ class DBHelper {
     );
   }
 
-  // 1. Inserir (Salvar) com LOG
+  // --- MÉTODOS CRUD ---
+
+  // 1. CREATE (Inserir)
   Future<int> insertTransacao(Transacao transacao) async {
-    final db = await database; // AQUI ESTAVA O ERRO "Undefined name 'database'"
+    final db = await database;
     try {
       int id = await db.insert('transacoes', transacao.toMap());
-      LogService.info("✅ Transação salva com ID: $id - Valor: ${transacao.valor}");
+      LogService.info("✅ Transação salva com ID: $id");
       return id;
     } catch (e, stack) {
-      LogService.error("❌ Erro ao salvar transação", e, stack);
+      LogService.error("❌ Erro ao salvar", e, stack);
       rethrow;
     }
   }
 
-  // 2. Listar Todas
+  // 2. READ (Listar tudo)
   Future<List<Transacao>> getTransacoes() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('transacoes', orderBy: "data DESC");
-
-    return List.generate(maps.length, (i) {
-      return Transacao.fromMap(maps[i]);
-    });
+    return List.generate(maps.length, (i) => Transacao.fromMap(maps[i]));
   }
 
-  // 3. Somar Totais (ESSENCIAL PARA A HOME)
+  // 2.1 READ (Totais para a Home)
   Future<Map<String, double>> getTotais() async {
     final db = await database;
     final resultado = await db.rawQuery('SELECT tipo, SUM(valor) as total FROM transacoes GROUP BY tipo');
@@ -77,7 +75,6 @@ class DBHelper {
         despesas = (row['total'] as num?)?.toDouble() ?? 0.0;
       }
     }
-
     return {
       'receitas': receitas,
       'despesas': despesas,
@@ -85,7 +82,19 @@ class DBHelper {
     };
   }
 
-  // 4. Deletar
+  // 3. UPDATE (Atualizar) - ESTA É A FUNÇÃO QUE ESTAVA FALTANDO
+  Future<int> updateTransacao(Transacao transacao) async {
+    final db = await database;
+    LogService.info("📝 Atualizando transação ID: ${transacao.id}");
+    return await db.update(
+      'transacoes',
+      transacao.toMap(),
+      where: 'id = ?',
+      whereArgs: [transacao.id],
+    );
+  }
+
+  // 4. DELETE (Apagar)
   Future<int> deleteTransacao(int id) async {
     final db = await database;
     LogService.warning("🗑️ Deletando transação ID: $id");

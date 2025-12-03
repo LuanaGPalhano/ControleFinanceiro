@@ -40,6 +40,7 @@ dependencies:
   intl: ^0.19.0      # Para formatar datas (Ex: dd/MM/yyyy)
   share_plus: ^9.0.0
   logger: ^2.0.0
+  fl_chart: ^1.1.1
 
 dev_dependencies:
   flutter_test:
